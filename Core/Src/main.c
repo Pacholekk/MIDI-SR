@@ -55,9 +55,9 @@
 
 /* USER CODE BEGIN PV */
 //int16_t  accData[3];
-////int16_t  gyroData[3];
+int16_t  gyroData[3];
 //uint8_t  strTmpAcc[100];
-////uint8_t  strTmpGyro[100];
+uint8_t  strTmpGyro[100];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -110,8 +110,8 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 2 */
-  BSP_COMPASS_Init();
-//  BSP_GYRO_Init();
+//  BSP_COMPASS_Init();
+  BSP_GYRO_Init();
 
 // if( BSP_COMPASS_Init() == COMPASS_ERROR)
 // {
@@ -123,14 +123,14 @@ int main(void)
 // }
 
 
-// if(BSP_GYRO_Init() == GYRO_ERROR)
-// {
-//	 while(1)
-//	 {
-//		 HAL_GPIO_TogglePin(LD_R_GPIO_Port, LD_R_Pin);
-//		 HAL_Delay(500);
-//	 }
-// }
+ if(BSP_GYRO_Init() == GYRO_ERROR)
+ {
+	 while(1)
+	 {
+		 HAL_GPIO_TogglePin(LD_R_GPIO_Port, LD_R_Pin);
+		 HAL_Delay(500);
+	 }
+ }
   /* USER CODE END 2 */
 
   /* Infinite loop */
