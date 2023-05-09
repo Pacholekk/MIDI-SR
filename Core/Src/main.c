@@ -188,17 +188,17 @@ int main(void)
 	  BSP_COMPASS_AccGetXYZ(accData);
 	  BSP_GYRO_GetXYZ(gyroData);
 	  //sprintf(strTmpAcc,"ACC: X:%d Y:%d Z:%d\r\n",accData[0], accData[1], accData[2]);
-	  HAL_UART_Transmit(&huart2, (uint8_t*)strTmpAcc, strlen(strTmpAcc), 100);
+	  //HAL_UART_Transmit(&huart2, (uint8_t*)strTmpAcc, strlen(strTmpAcc), 100);
 	 // HAL_Delay(300);
-	  sprintf(strTmpGyro,"GYRO: X:%d Y:%d Z:%d\r\n",gyroData[0], gyroData[1], gyroData[2]);
-	  HAL_UART_Transmit(&huart2, (uint8_t*)strTmpGyro, strlen(strTmpGyro), 100);
+	  //sprintf(strTmpGyro,"GYRO: X:%d Y:%d Z:%d\r\n",gyroData[0], gyroData[1], gyroData[2]);
+	  //HAL_UART_Transmit(&huart2, (uint8_t*)strTmpGyro, strlen(strTmpGyro), 100);
 	  //HAL_Delay(1000);
 
 	    // tworzenie ramki danych
-	    createFrame(txBuffer, accData, gyroData);
+	   // createFrame(txBuffer, accData, gyroData);
 
 	    // wysyłanie ramki przez UART
-	    HAL_UART_Transmit(&huart2, txBuffer, FRAME_SIZE, 1000);
+	   // HAL_UART_Transmit(&huart2, txBuffer, FRAME_SIZE, 1000);
 
 	    // opóźnienie między wysyłkami
 	    HAL_Delay(100);

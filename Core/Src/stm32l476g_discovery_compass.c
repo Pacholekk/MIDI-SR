@@ -98,7 +98,7 @@ COMPASS_StatusTypeDef BSP_COMPASS_Init(void)
   ACCELERO_InitTypeDef LSM303C_InitStructure;
   ACCELERO_FilterConfigTypeDef LSM303C_FilterStructure;
   MAGNETO_InitTypeDef LSM303C_InitStructureMag;
-
+  uint8_t chuj = 1;
   if (Lsm303cDrv_accelero.ReadID() != LMS303C_ACC_ID)
   {
     ret = COMPASS_ERROR;
