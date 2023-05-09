@@ -54,9 +54,11 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-//int16_t  accData[3];
+UART_HandleTypeDef huart2;
+uint8_t txBuffer[FRAME_SIZE];
+int16_t  accData[3];
 int16_t  gyroData[3];
-//uint8_t  strTmpAcc[100];
+uint8_t  strTmpAcc[100];
 uint8_t  strTmpGyro[100];
 /* USER CODE END PV */
 
@@ -65,7 +67,45 @@ void SystemClock_Config(void);
 void MX_USB_HOST_Process(void);
 
 /* USER CODE BEGIN PFP */
+// funkcja do tworzenia ramki danych
+void createFrame(uint8_t *buffer, int16_t *accData, int16_t *gyroData) {
+  int i = 0;
+  uint8_t checksum = 0;
 
+  // ustawiamy pierwszy bajt jako bajt startu
+  buffer[i++] = FRAME_START_BYTE;
+  checksum ^= FRAME_START_BYTE;
+
+  // dodajemy nagłówek ramki
+  buffer[i++] = 0x01; // id urządzenia
+  checksum ^= 0x01;
+  buffer[i++] = 0x10; // typ danych
+  checksum ^= 0x10;
+  buffer[i++] = FRAME_DATA_SIZE; // długość danych
+  checksum ^= FRAME_DATA_SIZE;
+
+  // dodajemy dane z akcelerometru
+  for (int j = 0; j < 3; j++) {
+    buffer[i++] = (uint8_t)(accData[j] & 0xFF);
+    buffer[i++] = (uint8_t)((accData[j] >> 8) & 0xFF);
+    checksum ^= buffer[i-2];
+    checksum ^= buffer[i-1];
+  }
+
+  // dodajemy dane z żyroskopu
+  for (int j = 0; j < 3; j++) {
+    buffer[i++] = (uint8_t)(gyroData[j] & 0xFF);
+    buffer[i++] = (uint8_t)((gyroData[j] >> 8) & 0xFF);
+    checksum ^= buffer[i-2];
+    checksum ^= buffer[i-1];
+  }
+
+  // dodajemy sumę kontrolną
+  buffer[i++] = checksum;
+
+  // dodajemy ostatni bajt jako bajt stopu
+  buffer[i++] = FRAME_STOP_BYTE;
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -89,7 +129,15 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  // konfiguracja portu szeregowego UART
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 9600;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  HAL_UART_Init(&huart2);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -110,17 +158,17 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 2 */
-//  BSP_COMPASS_Init();
+  BSP_COMPASS_Init();
   BSP_GYRO_Init();
 
-// if( BSP_COMPASS_Init() == COMPASS_ERROR)
-// {
-//	 while(1)
-//	 {
-//		 HAL_GPIO_TogglePin(LD_G_GPIO_Port, LD_G_Pin);
-//		 HAL_Delay(500);
-//	 }
-// }
+ if( BSP_COMPASS_Init() == COMPASS_ERROR)
+ {
+	 while(1)
+	 {
+		 HAL_GPIO_TogglePin(LD_G_GPIO_Port, LD_G_Pin);
+		 HAL_Delay(500);
+	 }
+ }
 
 
  if(BSP_GYRO_Init() == GYRO_ERROR)
@@ -137,16 +185,23 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-//	  BSP_COMPASS_AccGetXYZ(accData);
-//	  BSP_GYRO_GetXYZ(gyroData);
-//	  sprintf(strTmpAcc,"ACC: X:%d Y:%d Z:%d\r\n",accData[0], accData[1], accData[2]);
-//	  HAL_UART_Transmit(&huart2, (uint8_t*)strTmpAcc, strlen(strTmpAcc), 100);
-//	  HAL_Delay(300);
-////	  sprintf(strTmpGyro,"GYRO: X:%d Y:%d Z:%d\r\n\n",gyroData[0], gyroData[1], gyroData[2]);
-////	  HAL_UART_Transmit(&huart2, (uint8_t*)strTmpGyro, strlen(strTmpGyro), 100);
-////	  HAL_Delay(1000);
+	  BSP_COMPASS_AccGetXYZ(accData);
+	  BSP_GYRO_GetXYZ(gyroData);
+	  //sprintf(strTmpAcc,"ACC: X:%d Y:%d Z:%d\r\n",accData[0], accData[1], accData[2]);
+	  HAL_UART_Transmit(&huart2, (uint8_t*)strTmpAcc, strlen(strTmpAcc), 100);
+	 // HAL_Delay(300);
+	  sprintf(strTmpGyro,"GYRO: X:%d Y:%d Z:%d\r\n",gyroData[0], gyroData[1], gyroData[2]);
+	  HAL_UART_Transmit(&huart2, (uint8_t*)strTmpGyro, strlen(strTmpGyro), 100);
+	  //HAL_Delay(1000);
 
+	    // tworzenie ramki danych
+	    createFrame(txBuffer, accData, gyroData);
 
+	    // wysyłanie ramki przez UART
+	    HAL_UART_Transmit(&huart2, txBuffer, FRAME_SIZE, 1000);
+
+	    // opóźnienie między wysyłkami
+	    HAL_Delay(100);
     /* USER CODE END WHILE */
     MX_USB_HOST_Process();
 
