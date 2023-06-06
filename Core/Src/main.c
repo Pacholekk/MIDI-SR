@@ -35,6 +35,8 @@
 #include "lsm303c.h"
 #include "stm32l476g_discovery_compass.h"
 #include "stm32l476g_discovery_gyroscope.h"
+#include "stm32l476g_discovery_audio.h"
+#include "stm32l4xx_hal_dfsdm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,6 +46,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -54,8 +57,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-UART_HandleTypeDef huart2;
-uint8_t txBuffer[FRAME_SIZE];
 int16_t  accData[3];
 int16_t  gyroData[3];
 uint8_t  strTmpAcc[100];
@@ -67,49 +68,44 @@ void SystemClock_Config(void);
 void MX_USB_HOST_Process(void);
 
 /* USER CODE BEGIN PFP */
-// funkcja do tworzenia ramki danych
-void createFrame(uint8_t *buffer, int16_t *accData, int16_t *gyroData) {
-  int i = 0;
-  uint8_t checksum = 0;
 
-  // ustawiamy pierwszy bajt jako bajt startu
-  buffer[i++] = FRAME_START_BYTE;
-  checksum ^= FRAME_START_BYTE;
-
-  // dodajemy nagłówek ramki
-  buffer[i++] = 0x01; // id urządzenia
-  checksum ^= 0x01;
-  buffer[i++] = 0x10; // typ danych
-  checksum ^= 0x10;
-  buffer[i++] = FRAME_DATA_SIZE; // długość danych
-  checksum ^= FRAME_DATA_SIZE;
-
-  // dodajemy dane z akcelerometru
-  for (int j = 0; j < 3; j++) {
-    buffer[i++] = (uint8_t)(accData[j] & 0xFF);
-    buffer[i++] = (uint8_t)((accData[j] >> 8) & 0xFF);
-    checksum ^= buffer[i-2];
-    checksum ^= buffer[i-1];
-  }
-
-  // dodajemy dane z żyroskopu
-  for (int j = 0; j < 3; j++) {
-    buffer[i++] = (uint8_t)(gyroData[j] & 0xFF);
-    buffer[i++] = (uint8_t)((gyroData[j] >> 8) & 0xFF);
-    checksum ^= buffer[i-2];
-    checksum ^= buffer[i-1];
-  }
-
-  // dodajemy sumę kontrolną
-  buffer[i++] = checksum;
-
-  // dodajemy ostatni bajt jako bajt stopu
-  buffer[i++] = FRAME_STOP_BYTE;
-}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
+/* Function prototypes */
+
+
+
+
+int16_t scaleValue(int16_t value)
+{
+    // Zakres wejściowy: -1700 do 1700
+    // Zakres docelowy: 0 do 127
+
+    // Przeskalowanie wartości
+	if(value >9300)
+	{
+		value = 9300;
+	}
+
+	if(value < -9300)
+	{
+		value = -9300;
+	}
+    float scaledValue = (value + 9300) * (127.0 / 18600.0);
+
+
+    // Zaokrąglenie wartości do najbliższej liczby całkowitej
+    int16_t roundedValue = (int16_t)(scaledValue + 0.5);
+
+    return roundedValue;
+}
+
+
+
 
 /* USER CODE END 0 */
 
@@ -129,15 +125,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  // konfiguracja portu szeregowego UART
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 9600;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  HAL_UART_Init(&huart2);
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -158,50 +146,64 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 2 */
+//  BSP_AUDIO_IN_Init(48000, DEFAULT_AUDIO_IN_BIT_RESOLUTION, DEFAULT_AUDIO_IN_CHANNEL_NBR);
+//  BSP_AUDIO_OUT_Init(OUTPUT_DEVICE_HEADPHONE, 60, 48000);
+  BSP_AUDIO_IN_Init(48000, DEFAULT_AUDIO_IN_BIT_RESOLUTION, DEFAULT_AUDIO_IN_CHANNEL_NBR);
+  BSP_AUDIO_OUT_Init(OUTPUT_DEVICE_HEADPHONE, 60, 48000);
+
+
+
   BSP_COMPASS_Init();
-  BSP_GYRO_Init();
 
- if( BSP_COMPASS_Init() == COMPASS_ERROR)
- {
-	 while(1)
-	 {
-		 HAL_GPIO_TogglePin(LD_G_GPIO_Port, LD_G_Pin);
-		 HAL_Delay(500);
-	 }
- }
-
-
- if(BSP_GYRO_Init() == GYRO_ERROR)
- {
-	 while(1)
-	 {
-		 HAL_GPIO_TogglePin(LD_R_GPIO_Port, LD_R_Pin);
-		 HAL_Delay(500);
-	 }
- }
+  //BSP_AUDIO_OUT_Init(OUTPUT_DEVICE_AUTO, 70, AUDIO_FREQUENCY_44K);
+//  BSP_AUDIO_IN_Record(audioBuffer, AUDIO_BUFFER_SIZE);
+//  BSP_AUDIO_IN_SetFrequency(AUDIO_FREQUENCY_32K);
+//  BSP_GYRO_Init();
+//
+// if( BSP_COMPASS_Init() == COMPASS_ERROR)
+// {
+//	 while(1)
+//	 {
+//		 HAL_GPIO_TogglePin(LD_G_GPIO_Port, LD_G_Pin);
+//		 HAL_Delay(500);
+//	 }
+// }
+//
+//
+// if(BSP_GYRO_Init() == GYRO_ERROR)
+// {
+//	 while(1)
+//	 {
+//		 HAL_GPIO_TogglePin(LD_R_GPIO_Port, LD_R_Pin);
+//		 HAL_Delay(500);
+//	 }
+// }
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+
+
 	  BSP_COMPASS_AccGetXYZ(accData);
 	  BSP_GYRO_GetXYZ(gyroData);
-	  sprintf(strTmpAcc,"ACC: X:%d Y:%d Z:%d\r\n",accData[0], accData[1], accData[2]);
-	  HAL_UART_Transmit(&huart2, (uint8_t*)strTmpAcc, strlen(strTmpAcc), 100);
-	  HAL_Delay(300);
-	  sprintf(strTmpGyro,"GYRO: X:%d Y:%d Z:%d\r\n",gyroData[0], gyroData[1], gyroData[2]);
-	  HAL_UART_Transmit(&huart2, (uint8_t*)strTmpGyro, strlen(strTmpGyro), 100);
-	  //HAL_Delay(1000);
+	  int16_t scaledAccDataX = scaleValue(accData[0]);
+	  int16_t scaledAccDataY = scaleValue(accData[1]);
 
-	    // tworzenie ramki danych
-	   // createFrame(txBuffer, accData, gyroData);
+	 	  	  uint8_t data[3];
+	 	      data[0] = 0x90;
+	 	      data[1] = (uint8_t)(scaledAccDataX & 0xFF); // Dolny bajt wartości HEX
+	 	      data[2] = (uint8_t)(scaledAccDataY & 0xFF); // Dolny bajt wartości HEX
 
-	    // wysyłanie ramki przez UART
-	   // HAL_UART_Transmit(&huart2, txBuffer, FRAME_SIZE, 1000);
+	 	      HAL_UART_Transmit(&huart2, data, sizeof(data), HAL_MAX_DELAY); // Wysłanie danych przez UART
+//	  sprintf(strTmpAcc,"ACC: X:%d Y:%d Z:%d\r\n",accData[0], accData[1], accData[2]);
+//	  	  HAL_UART_Transmit(&huart2, (uint8_t*)strTmpAcc, strlen(strTmpAcc), 100);
 
-	    // opóźnienie między wysyłkami
-	    HAL_Delay(100);
+	 	      HAL_Delay(200);
+
+
     /* USER CODE END WHILE */
     MX_USB_HOST_Process();
 

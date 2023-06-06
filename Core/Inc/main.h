@@ -55,6 +55,7 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -211,11 +212,7 @@ void Error_Handler(void);
 #define XL_INT_Pin GPIO_PIN_1
 #define XL_INT_GPIO_Port GPIOE
 /* USER CODE BEGIN Private defines */
-#define FRAME_START_BYTE 0xAA
-#define FRAME_STOP_BYTE 0x55
-#define FRAME_HEADER_SIZE 4
-#define FRAME_DATA_SIZE 12
-#define FRAME_SIZE (FRAME_HEADER_SIZE + FRAME_DATA_SIZE)
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
